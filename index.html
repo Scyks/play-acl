@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Play-acl by Scyks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Play-acl</h1>
+      <h2 class="project-tagline">Play Framework ACL component</h2>
+      <a href="https://github.com/Scyks/play-acl" class="btn">View on GitHub</a>
+      <a href="https://github.com/Scyks/play-acl/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/Scyks/play-acl/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="play-acl-module" class="anchor" href="#play-acl-module" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Play Acl Module</h1>
+
+<p>This is a module to implement a simple Acl system to play framework. With this
+module, you can protect controller actions, or anything else.</p>
+
+<p>You can protect an admin area, or hide information / actions for specific users.
+It's also possible to connect a right to specific conditions for objects.</p>
+
+<p>Let's say you have a shop system and want to display orders. The orders are separated
+in 2 lists (open orders and closed orders). For this case you can use the acl system
+to filter entries between these 2 lists.</p>
+
+<h1>
+<a id="install" class="anchor" href="#install" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install</h1>
+
+<p>You can easily use the sbt tool to download the resources to your project.</p>
+
+<div class="highlight highlight-source-scala"><pre>libraryDependencies  <span class="pl-k">++</span><span class="pl-k">=</span>  <span class="pl-en">Seq</span>(
+    <span class="pl-s"><span class="pl-pds">"</span>com.github.scyks<span class="pl-pds">"</span></span> <span class="pl-k">%%</span> <span class="pl-s"><span class="pl-pds">"</span>playacl<span class="pl-pds">"</span></span> <span class="pl-k">%</span> <span class="pl-s"><span class="pl-pds">"</span>0.5.0<span class="pl-pds">"</span></span>
+)</pre></div>
+
+<h1>
+<a id="how-does-the-acl-system-work" class="anchor" href="#how-does-the-acl-system-work" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>How does the ACL system work</h1>
+
+<p>The Acl system is based on classical roles. A user can have one or more roles. Each role
+have resources and privileges. A resource is a entity or an are / module to separate
+rights. A privilege is the action the user want to do, like read, update, delete, expand,
+manage, send, ... .</p>
+
+<p>A User have roles, and will be initialized with the ACL system. An Anonymous user is also
+a representation of a user, but with none or different roles.</p>
+
+<p>Roles are objects, with a unique identifier which. The identifier is a bit value like
+1, 2, 4, 8, 16 ...</p>
+
+<h2>
+<a id="define-resources" class="anchor" href="#define-resources" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Define resources</h2>
+
+<p>A resource have to extend <code>com.github.scyks.playacl.Resource</code> and contain a string identifier.</p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">object</span> <span class="pl-en">AdminResource</span> <span class="pl-k">extends</span> <span class="pl-e">com.github.scyks.playacl.Resource</span>(<span class="pl-s"><span class="pl-pds">"</span>admin<span class="pl-pds">"</span></span>)</pre></div>
+
+<h2>
+<a id="define-privileges" class="anchor" href="#define-privileges" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Define Privileges</h2>
+
+<p>A privilege have to extend <code>com.github.scyks.playacl.Privilege</code> and contain a string identifier.</p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">object</span> <span class="pl-en">ReadPrivilege</span> <span class="pl-k">extends</span> <span class="pl-e">com.github.scyks.playacl.Privilege</span>(<span class="pl-s"><span class="pl-pds">"</span>read<span class="pl-pds">"</span></span>)</pre></div>
+
+<h2>
+<a id="define-roles" class="anchor" href="#define-roles" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Define Roles</h2>
+
+<p>A Role have to implement <code>com.github.scyks.playacl.Role</code> interface, which contains 4 abstract methods:</p>
+
+<ul>
+<li>
+<code>getIdentifier: Long</code>: the role identifier bit value</li>
+<li>
+<code>getRoleId: String</code>: returns a string identifier of this role</li>
+<li>
+<code>getInheritedRole: List[Role]</code>: a list of parent roles</li>
+<li>
+<code>getPrivileges: Map[Resource, Map[Privilege, Seq[(Option[AclObject], Acl) =&gt; Boolean]]]</code>: the complete definition of rights</li>
+</ul>
+
+<h3>
+<a id="assertions" class="anchor" href="#assertions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Assertions</h3>
+
+<p>Assertions, defined in <code>Seq[(Option[AclObject], Acl) =&gt; Boolean]</code> are callback functions to define
+specific conditions on a resource. When you have a list of users, and want to show an edit button
+to directly edit this user u can use this. An admin will have no restriction, an anonymous user
+is denied for this operation, but a user can edit his own entry.</p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">val</span> <span class="pl-en">myId</span> <span class="pl-k">=</span> <span class="pl-c1">4</span>
+<span class="pl-k">case</span> <span class="pl-k">class</span> <span class="pl-en">User</span>(<span class="pl-v">id</span>: <span class="pl-k">Int</span>) <span class="pl-k">extends</span> <span class="pl-e">AclObject</span>
+<span class="pl-c">// the assert definition</span>
+(<span class="pl-v">user</span>: <span class="pl-en">Option</span>[<span class="pl-en">AclObject</span>], <span class="pl-v">acl</span>: <span class="pl-en">Acl</span>) <span class="pl-k">=&gt;</span> user <span class="pl-k">match</span> {
+    <span class="pl-k">case</span> <span class="pl-en">Some</span>(<span class="pl-v">u</span>: <span class="pl-en">User</span>) <span class="pl-k">=&gt;</span> u.exists(_.id <span class="pl-k">==</span> acl.observerEntity.id)
+    <span class="pl-k">case</span> _ <span class="pl-k">=&gt;</span> <span class="pl-c1">false</span>
+}
+
+acl.isAllowed(<span class="pl-en">UserResource</span>, <span class="pl-en">EditPrivilege</span>, <span class="pl-en">Some</span>(currentUser)) <span class="pl-c">// returns true or false</span></pre></div>
+
+<p>This is definitely not a good way to do this, and i'm currently working on
+a solution to define this in an easier way. If someone have an idea, please let me know.</p>
+
+<h2>
+<a id="the-security-trait" class="anchor" href="#the-security-trait" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>The Security Trait</h2>
+
+<p>For Initialization of the Acl you need to configure the Security Trait. This Trait will be used
+in a controller action to initialize and retrieve the ACL instance for the current user. When there
+is no user logged in, there is a guest user defined. To implement the Security trait you need to
+define these methods:</p>
+
+<ul>
+<li>
+<code>userByUsername(username: String)(implicit acl: Acl): Option[I]</code> to retrieve a user from some storage by given username</li>
+<li>
+<code>roles: List[Role]</code> the list of available roles</li>
+<li>
+<code>guestRole: Role</code> the guest role</li>
+<li>
+<code>guestUser: UserEntity</code> to return a guest / anonymous user</li>
+</ul>
+
+<h2>
+<a id="putting-all-together" class="anchor" href="#putting-all-together" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Putting all Together</h2>
+
+<p>To configure your acl system you have to define "Resources", "Privileges", "Roles" and the "Security" trait.
+I'll show a dummy implementation:</p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">import</span> <span class="pl-v">org.playscala.</span>{<span class="pl-v">Resource</span>, <span class="pl-v">Privilege</span>, <span class="pl-v">Role</span>, <span class="pl-v">Identity</span>}
+<span class="pl-k">import</span> <span class="pl-v">org.playscala.play.</span><span class="pl-v">Security</span>
+
+<span class="pl-c">/** Resources */</span>
+<span class="pl-k">object</span> <span class="pl-en">MainResource</span> <span class="pl-k">extends</span> <span class="pl-e">Resource</span>(<span class="pl-s"><span class="pl-pds">"</span>main<span class="pl-pds">"</span></span>)
+<span class="pl-k">object</span> <span class="pl-en">UserResource</span> <span class="pl-k">extends</span> <span class="pl-e">Resource</span>(<span class="pl-s"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>)
+<span class="pl-k">object</span> <span class="pl-en">AdminResource</span> <span class="pl-k">extends</span> <span class="pl-e">Resource</span>(<span class="pl-s"><span class="pl-pds">"</span>admin<span class="pl-pds">"</span></span>)
+
+<span class="pl-c">/** Privileges */</span>
+<span class="pl-k">object</span> <span class="pl-en">ReadPrivilege</span> <span class="pl-k">extends</span> <span class="pl-e">Privilege</span>(<span class="pl-s"><span class="pl-pds">"</span>read<span class="pl-pds">"</span></span>)
+<span class="pl-k">object</span> <span class="pl-en">CreatePrivilege</span> <span class="pl-k">extends</span> <span class="pl-e">Privilege</span>(<span class="pl-s"><span class="pl-pds">"</span>create<span class="pl-pds">"</span></span>)
+<span class="pl-k">object</span> <span class="pl-en">LoggedInPrivilege</span> <span class="pl-k">extends</span> <span class="pl-e">Privilege</span>(<span class="pl-s"><span class="pl-pds">"</span>loggedIn<span class="pl-pds">"</span></span>)
+<span class="pl-k">object</span> <span class="pl-en">ManagePrivilege</span> <span class="pl-k">extends</span> <span class="pl-e">Privilege</span>(<span class="pl-s"><span class="pl-pds">"</span>manage<span class="pl-pds">"</span></span>)
+
+<span class="pl-c">/** User Roles */</span>
+<span class="pl-k">object</span> <span class="pl-en">Guest</span> <span class="pl-k">extends</span> <span class="pl-e">Role</span> {
+
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getIdentifier</span><span class="pl-k">:</span> <span class="pl-k">Long</span> <span class="pl-k">=</span> <span class="pl-c1">1L</span>
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getPrivileges</span><span class="pl-k">:</span> <span class="pl-en">Map</span>[<span class="pl-en">Resource</span>, <span class="pl-en">Map</span>[<span class="pl-en">Privilege</span>, <span class="pl-en">Seq</span>[(<span class="pl-en">Option</span>[<span class="pl-en">AclObject</span>], <span class="pl-en">Acl</span>) <span class="pl-k">=&gt;</span> <span class="pl-k">Boolean</span>]]] <span class="pl-k">=</span> {
+        <span class="pl-en">Map</span>(
+            <span class="pl-en">MainResource</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Map</span>(
+                <span class="pl-en">ReadPrivilege</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Seq</span>()
+            ),
+            <span class="pl-en">UserResource</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Map</span>(
+                <span class="pl-en">ReadPrivilege</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Seq</span>(),
+                <span class="pl-en">CreatePrivilege</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Seq</span>()
+            )
+        )
+    }
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getInheritedRoles</span><span class="pl-k">:</span> <span class="pl-en">List</span>[<span class="pl-en">Role</span>] <span class="pl-k">=</span> <span class="pl-en">List</span>()
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getRoleId</span><span class="pl-k">:</span> <span class="pl-k">String</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>guest<span class="pl-pds">"</span></span>
+}
+<span class="pl-k">object</span> <span class="pl-en">Registered</span> <span class="pl-k">extends</span> <span class="pl-e">Role</span> {
+
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getIdentifier</span><span class="pl-k">:</span> <span class="pl-k">Long</span> <span class="pl-k">=</span> <span class="pl-c1">2L</span>
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getPrivileges</span><span class="pl-k">:</span> <span class="pl-en">Map</span>[<span class="pl-en">Resource</span>, <span class="pl-en">Map</span>[<span class="pl-en">Privilege</span>, <span class="pl-en">Seq</span>[(<span class="pl-en">Option</span>[<span class="pl-en">AclObject</span>], <span class="pl-en">Acl</span>) <span class="pl-k">=&gt;</span> <span class="pl-k">Boolean</span>]]] <span class="pl-k">=</span> {
+        <span class="pl-en">Map</span>(
+            <span class="pl-en">UserResource</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Map</span>(
+                <span class="pl-en">LoggedInPrivilege</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Seq</span>()
+            )
+        )
+    }
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getInheritedRoles</span><span class="pl-k">:</span> <span class="pl-en">List</span>[<span class="pl-en">Role</span>] <span class="pl-k">=</span> <span class="pl-en">List</span>(<span class="pl-en">Guest</span>)
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getRoleId</span><span class="pl-k">:</span> <span class="pl-k">String</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>registered<span class="pl-pds">"</span></span>
+}
+
+<span class="pl-k">object</span> <span class="pl-en">Admin</span> <span class="pl-k">extends</span> <span class="pl-e">Role</span> {
+
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getIdentifier</span><span class="pl-k">:</span> <span class="pl-k">Long</span> <span class="pl-k">=</span> <span class="pl-c1">4L</span>
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getPrivileges</span><span class="pl-k">:</span> <span class="pl-en">Map</span>[<span class="pl-en">Resource</span>, <span class="pl-en">Map</span>[<span class="pl-en">Privilege</span>, <span class="pl-en">Seq</span>[(<span class="pl-en">Option</span>[<span class="pl-en">AclObject</span>], <span class="pl-en">Acl</span>) <span class="pl-k">=&gt;</span> <span class="pl-k">Boolean</span>]]] <span class="pl-k">=</span> {
+        <span class="pl-en">Map</span>(
+            <span class="pl-en">AdminResource</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Map</span>(
+                <span class="pl-en">ReadPrivilege</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Seq</span>(),
+                <span class="pl-en">ManagePrivilege</span> <span class="pl-k">-</span><span class="pl-k">&gt;</span> <span class="pl-en">Seq</span>()
+            )
+        )
+    } 
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getInheritedRoles</span><span class="pl-k">:</span> <span class="pl-en">List</span>[<span class="pl-en">Role</span>] <span class="pl-k">=</span> <span class="pl-en">List</span>(<span class="pl-en">Registered</span>)
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">getRoleId</span><span class="pl-k">:</span> <span class="pl-k">String</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>admin<span class="pl-pds">"</span></span>
+}
+
+<span class="pl-k">case</span> <span class="pl-k">class</span> <span class="pl-en">UserEntity</span>(<span class="pl-v">id</span>: <span class="pl-k">Int</span>, <span class="pl-v">roles</span>: <span class="pl-k">Long</span>) <span class="pl-k">extends</span> <span class="pl-e">Identity</span>
+
+<span class="pl-k">trait</span> <span class="pl-en">Security</span> <span class="pl-k">extends</span> <span class="pl-e">net.cc.base.acl.play.Security</span> {
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">userByUsername</span>(<span class="pl-v">username</span>: <span class="pl-k">String</span>)(<span class="pl-k">implicit</span> <span class="pl-v">acl</span>: <span class="pl-en">Acl</span>)<span class="pl-k">:</span> <span class="pl-en">Option</span>[<span class="pl-en">UserEntity</span>] <span class="pl-k">=</span> {
+        <span class="pl-en">UserRepository</span>.findByUserName(username) <span class="pl-k">match</span> {
+            <span class="pl-k">case</span> <span class="pl-en">Success</span>(user) <span class="pl-k">=&gt;</span> <span class="pl-en">Some</span>(user)
+            <span class="pl-k">case</span> <span class="pl-en">Failure</span>(ex) <span class="pl-k">=&gt;</span> <span class="pl-c1">None</span>
+        }
+    }
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">roles</span><span class="pl-k">:</span> <span class="pl-en">List</span>[<span class="pl-en">Role</span>] <span class="pl-k">=</span> <span class="pl-en">Guest</span> <span class="pl-k">::</span> <span class="pl-en">Registered</span> <span class="pl-k">::</span> <span class="pl-en">Admin</span><span class="pl-k">::</span> <span class="pl-c1">Nil</span>
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">guestRole</span><span class="pl-k">:</span> <span class="pl-en">Role</span> <span class="pl-k">=</span> <span class="pl-en">Guest</span>
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">guestUser</span><span class="pl-k">:</span> <span class="pl-en">UserEntity</span> <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">UserEntity</span>(<span class="pl-c1">0</span>, <span class="pl-c1">1L</span>)
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">onUnauthenticated</span>(<span class="pl-v">request</span>: <span class="pl-en">RequestHeader</span>) <span class="pl-k">=</span> <span class="pl-en">Results</span>.<span class="pl-en">Redirect</span>(<span class="pl-s"><span class="pl-pds">"</span>/login<span class="pl-pds">"</span></span>)
+    <span class="pl-k">override</span> <span class="pl-k">def</span> <span class="pl-en">onUnauthorized</span>(<span class="pl-v">request</span>: <span class="pl-en">RequestHeader</span>) <span class="pl-k">=</span> <span class="pl-en">Results</span>.<span class="pl-en">Redirect</span>(<span class="pl-s"><span class="pl-pds">"</span>/login<span class="pl-pds">"</span></span>)
+}</pre></div>
+
+<h1>
+<a id="protecting-controller-instances-or-get-acl-instance" class="anchor" href="#protecting-controller-instances-or-get-acl-instance" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Protecting Controller instances or get ACL instance</h1>
+
+<p>Because of being stateless, the controller is the entry point for the ACL system and 
+it will be initialized there. Also when you want to retrieve the logged in user.</p>
+
+<p>The Standard implementation contains 4 Methods, which are checking if a user is logged in
+and return the Acl or the user instance or even check a resource and privilege directly.</p>
+
+<ul>
+<li>
+<code>withAuth</code>: check if user is logged in, otherwise <code>onUnauthenticated</code> will be called</li>
+<li>
+<code>withUser</code>: will provide the logged in or the guest user instance</li>
+<li>
+<code>withAcl</code>: will provide the acl instance</li>
+<li>
+<code>withProtected(r: Resource, p: Privilege)</code>: 
+
+<ul>
+<li>if acl check against resource privilege fails -&gt; <code>onUnauthorized</code> will be called</li>
+</ul>
+</li>
+<li>
+<code>withProtected(r: Resource, p: Privilege, objectToCheck: () =&gt; Option[AclObject])</code>: 
+
+<ul>
+<li>if acl check against resource privilege on objecttoCheck fails -&gt; <code>onUnauthorized</code> will be called</li>
+</ul>
+</li>
+<li>
+<code>withProtectedAcl(r: Resource, p: Privilege)</code>: 
+
+<ul>
+<li>if acl check against resource privilege fails -&gt; <code>onUnauthorized</code> will be called</li>
+<li>if logged in and acl check is true -&gt; return Acl Instance</li>
+</ul>
+</li>
+<li>
+<code>withProtectedAcl(r: Resource, p: Privilege, objectToCheck: () =&gt; Option[AclObject])</code>: 
+
+<ul>
+<li>if acl check against resource privilege on objectToCheck fails -&gt; <code>onUnauthorized</code> will be called</li>
+<li>if logged in and acl check is true -&gt; return Acl Instance</li>
+</ul>
+</li>
+</ul>
+
+<h1>
+<a id="implementation-in-controller" class="anchor" href="#implementation-in-controller" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Implementation in controller</h1>
+
+<p>To protect a controller action or retrieve Acl or current user, see the following example:</p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">package</span> <span class="pl-en">controllers</span>
+
+<span class="pl-k">import</span> <span class="pl-v">&lt;your security trait&gt;</span>
+<span class="pl-k">import</span> <span class="pl-v">&lt;your resources and privileges&gt;</span>
+<span class="pl-k">import</span> <span class="pl-v">&lt;your user entity&gt;</span>
+<span class="pl-k">import</span> <span class="pl-v">com.github.scyks.playacl.</span><span class="pl-v">Acl</span>
+
+<span class="pl-c">/** Admin controller - we want to protected this */</span>
+<span class="pl-k">class</span> <span class="pl-en">Admin</span> <span class="pl-k">@</span><span class="pl-en">Inject</span>()(<span class="pl-k">val</span> <span class="pl-en">messagesApi</span><span class="pl-k">:</span> <span class="pl-en">MessagesApi</span>) <span class="pl-k">extends</span> <span class="pl-e">Controller</span> <span class="pl-k">with</span> <span class="pl-e">Security</span> {
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withAuth { <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withUser { <span class="pl-k">implicit</span> <span class="pl-v">user</span>: <span class="pl-en">UserEntity</span> <span class="pl-k">=&gt;</span> <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withAcl { <span class="pl-k">implicit</span> <span class="pl-v">acl</span>: <span class="pl-en">Acl</span> <span class="pl-k">=&gt;</span> <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withProtected(<span class="pl-en">AdminResource</span>, <span class="pl-en">ReadPrivilege</span>) { <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withProtected(<span class="pl-en">AdminResource</span>, <span class="pl-en">ReadPrivilege</span>, <span class="pl-en">DataSource</span>.getData) { <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withProtectedAcl(<span class="pl-en">AdminResource</span>, <span class="pl-en">ReadPrivilege</span>) { <span class="pl-k">implicit</span> <span class="pl-v">acl</span>: <span class="pl-en">Acl</span> <span class="pl-k">=&gt;</span> <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+
+    <span class="pl-k">def</span> <span class="pl-en">dashboard</span> <span class="pl-k">=</span> withProtectedAcl(<span class="pl-en">AdminResource</span>, <span class="pl-en">ReadPrivilege</span>, <span class="pl-en">DataSource</span>.getData) { <span class="pl-k">implicit</span> <span class="pl-v">acl</span>: <span class="pl-en">Acl</span> <span class="pl-k">=&gt;</span> <span class="pl-k">implicit</span> request <span class="pl-k">=&gt;</span>
+        <span class="pl-en">Ok</span>(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>)
+    }
+}</pre></div>
+
+<h1>
+<a id="using-acl-protection-in-views--controller" class="anchor" href="#using-acl-protection-in-views--controller" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Using acl protection in views / controller</h1>
+
+<p>A Requirement for doing this is an instance of <code>acl: Acl</code> in the current context. The acl object
+will be passed as <code>implicit</code> parameter.</p>
+
+<p>For checking the rights you have a lot of options to ask:</p>
+
+<ul>
+<li><code>acl.isAllowed(Resource, Privilege, Some(AclObject))</code></li>
+</ul>
+
+<p><strong>use <code>AllowLike</code> trait</strong></p>
+
+<p>To use this <code>AllowLike</code> trait, you need an AclObject.</p>
+
+<p><code>case class User extends AclObject With AllowLike</code></p>
+
+<ul>
+<li><code>acl allows Resource to Privilege</code></li>
+<li><code>acl allows Privilege at Resource</code></li>
+<li><code>acl allows AclObject ad Resource to Privilege</code></li>
+<li><code>AclObject allows Resource to Privilege</code></li>
+<li><code>AclObject allows Privilege at Resource</code></li>
+<li><code>Resource allows Privilege</code></li>
+<li><code>Resource allows AclObject to Privilege</code></li>
+<li><code>Privilege allows Resource</code></li>
+<li><code>Privilege allows AclObject at Resource</code></li>
+</ul>
+
+<h2>
+<a id="view-implementation" class="anchor" href="#view-implementation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>View implementation</h2>
+
+<p>In a view it's necessary to provide implicit acl instance.</p>
+
+<p><strong>without request</strong></p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">@</span><span class="pl-k">import</span> <span class="pl-v">com.github.scyks.playacl.</span><span class="pl-v">Acl</span>
+<span class="pl-k">@</span>()(<span class="pl-k">implicit</span> <span class="pl-v">acl</span>: <span class="pl-en">Acl</span>)
+
+<span class="pl-k">@</span><span class="pl-k">if</span>(acl allows <span class="pl-en">Resource</span> to <span class="pl-en">Privilege</span>) {
+    &lt;<span class="pl-ent">h1</span>&gt;<span class="pl-en">Hello</span> <span class="pl-en">World</span>&lt;/<span class="pl-ent">h1</span>&gt;
+}</pre></div>
+
+<p><strong>with request</strong></p>
+
+<div class="highlight highlight-source-scala"><pre><span class="pl-k">@</span><span class="pl-k">import</span> <span class="pl-v">com.github.scyks.playacl.</span><span class="pl-v">Acl</span>
+<span class="pl-k">@</span>()(<span class="pl-k">implicit</span> <span class="pl-v">request</span>: <span class="pl-en">RequestHeader</span>, <span class="pl-v">acl</span>: <span class="pl-en">Acl</span>)
+
+<span class="pl-k">@</span><span class="pl-k">if</span>(acl allows <span class="pl-en">Resource</span> to <span class="pl-en">Privilege</span>) {
+    &lt;<span class="pl-ent">h1</span>&gt;<span class="pl-en">Hello</span> <span class="pl-en">World</span>&lt;/<span class="pl-ent">h1</span>&gt;
+}</pre></div>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/Scyks/play-acl">Play-acl</a> is maintained by <a href="https://github.com/Scyks">Scyks</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
